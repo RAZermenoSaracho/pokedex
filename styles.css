@@ -41,7 +41,10 @@ body {
 
 .suggestions-box {
     position: absolute;
-    width: 480px;
+    width: 100%;
+    /* Match parent container width */
+    max-width: 480px;
+    /* Still looks good on desktop */
     left: 50%;
     transform: translateX(-50%);
     z-index: 2000;
@@ -176,6 +179,20 @@ body {
 
     .pokemon-info {
         padding-left: 10px;
+    }
+
+    .suggestions-box {
+        width: 100%;
+        max-width: 90%;
+        /* a little margin from edges */
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    #suggestions .list-group-item {
+        font-size: 0.9rem;
+        /* smaller text for mobile */
+        padding: 6px 10px;
     }
 }
 
