@@ -1,4 +1,6 @@
 let allPokemonNames = [];
+let activeIndex = -1;
+let currentMatches = [];
 
 /* Load Pokémon Names */
 async function loadPokemonList() {
@@ -12,29 +14,82 @@ loadPokemonList();
 const input = document.getElementById("pokemonInput");
 const suggestionsList = document.getElementById("suggestions");
 
+/* Input typing */
 input.addEventListener("input", () => {
     const value = input.value.toLowerCase();
     suggestionsList.innerHTML = "";
+    activeIndex = -1;
+
     if (!value) return;
 
-    const matches = allPokemonNames
+    currentMatches = allPokemonNames
         .filter(name => name.startsWith(value))
         .slice(0, 10);
 
-    matches.forEach(name => {
+    currentMatches.forEach((name, index) => {
         const li = document.createElement("li");
         li.classList.add("list-group-item");
         li.textContent = name;
 
         li.onclick = () => {
-            input.value = name;
-            suggestionsList.innerHTML = "";
-            fetchPokemon();
+            selectSuggestion(index);
         };
 
         suggestionsList.appendChild(li);
     });
 });
+
+/* Keyboard navigation */
+input.addEventListener("keydown", (e) => {
+    const items = suggestionsList.querySelectorAll("li");
+    if (!items.length) return;
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeIndex = (activeIndex + 1) % items.length;
+        updateActiveItem(items);
+    }
+
+    if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeIndex = (activeIndex - 1 + items.length) % items.length;
+        updateActiveItem(items);
+    }
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+
+        if (activeIndex >= 0) {
+            selectSuggestion(activeIndex);
+        } else {
+            closeSuggestions();
+            fetchPokemon(input.value.toLowerCase());
+        }
+    }
+});
+
+/* Select suggestion */
+function selectSuggestion(index) {
+    if (index < 0 || index >= currentMatches.length) return;
+
+    input.value = currentMatches[index];
+    closeSuggestions();
+    fetchPokemon(currentMatches[index]);
+}
+
+/* Highlight active item */
+function updateActiveItem(items) {
+    items.forEach((item, i) => {
+        item.classList.toggle("active", i === activeIndex);
+    });
+}
+
+/* Close dropdown */
+function closeSuggestions() {
+    suggestionsList.innerHTML = "";
+    activeIndex = -1;
+    currentMatches = [];
+}
 
 /* FETCH POKÉMON */
 async function fetchPokemon(query) {
@@ -42,20 +97,25 @@ async function fetchPokemon(query) {
         if (!query) query = input.value.toLowerCase();
         if (!query) return;
 
+        closeSuggestions();
+
         const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${query}`);
         if (!response.ok) throw new Error("Not found");
 
         const data = await response.json();
 
         /* IMAGE */
-        document.getElementById("pokemonImage").src = data.sprites.other["official-artwork"].front_default;
+        document.getElementById("pokemonImage").src =
+            data.sprites.other["official-artwork"].front_default;
 
         /* TEXT */
         document.getElementById("pokemonName").textContent = data.name;
         document.getElementById("pokemonTypes").textContent =
             data.types.map(t => t.type.name).join(", ");
-        document.getElementById("pokemonHeight").textContent = `${data.height / 10} m`;
-        document.getElementById("pokemonWeight").textContent = `${data.weight / 10} kg`;
+        document.getElementById("pokemonHeight").textContent =
+            `${data.height / 10} m`;
+        document.getElementById("pokemonWeight").textContent =
+            `${data.weight / 10} kg`;
 
         /* STATS */
         const statsList = document.getElementById("pokemonStats");
@@ -107,10 +167,14 @@ function typeToBackground(type) {
 }
 
 /* SEARCH BUTTON */
-document.getElementById("fetchButton").addEventListener("click", () => fetchPokemon());
+document.getElementById("fetchButton").addEventListener("click", () => {
+    closeSuggestions();
+    fetchPokemon();
+});
 
 /* RANDOM BUTTON */
 document.getElementById("randomButton").addEventListener("click", () => {
+    closeSuggestions();
     const randomId = Math.floor(Math.random() * 898) + 1;
     fetchPokemon(randomId);
 });
